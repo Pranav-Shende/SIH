@@ -8,14 +8,16 @@ import tensorflow as tf
 
 app = Flask(__name__)
 
+# ✅ Enable CORS for all routes, all origins, and allow credentials if needed.
 CORS(
     app,
-    resources={r"/*": {"origins": ["http://localhost:4028", "https://sih-6-yve3.onrender.com"]}},
-    methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"]
+    resources={r"/*": {"origins": "*"}},
+    supports_credentials=True
 )
 
-# Dictionary with breed information
+# --------------------------------------------------------------------
+# Cattle breed information
+# --------------------------------------------------------------------
 CATTLE_BREEDS = {
     "Banni buffalo": {
         "milk_yield": "Moderate",
@@ -99,7 +101,9 @@ CATTLE_BREEDS = {
     }
 }
 
+# --------------------------------------------------------------------
 # Load ML model if available
+# --------------------------------------------------------------------
 try:
     model_path = os.path.join(os.getcwd(), 'cattle_buffalo_model.h5')
     if os.path.exists(model_path):
@@ -114,9 +118,7 @@ except Exception as e:
 
 
 def process_image_and_predict(image_data):
-    """
-    Processes the image and returns a predicted breed name.
-    """
+    """Process the image and return the predicted breed name."""
     try:
         image = Image.open(io.BytesIO(image_data)).convert('RGB')
         image = image.resize((224, 224))
@@ -133,7 +135,6 @@ def process_image_and_predict(image_data):
             predicted_breed = "Holstein" if image.width <= image.height else "Angus"
 
         return predicted_breed
-
     except Exception as e:
         print(f"Error processing image: {e}")
         return None
@@ -143,6 +144,13 @@ def process_image_and_predict(image_data):
 def home():
     return "The server is running!"
 
+# --------------------------------------------------------------------
+# CORS pre-flight handler for /predict
+# --------------------------------------------------------------------
+@app.route('/predict', methods=['OPTIONS'])
+def predict_options():
+    """Handle the browser's CORS pre-flight OPTIONS request."""
+    return ('', 204)
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -166,4 +174,5 @@ def predict():
 
 
 if __name__ == '__main__':
+    # Render will override the port, but for local testing this works.
     app.run(host='0.0.0.0', debug=True)
